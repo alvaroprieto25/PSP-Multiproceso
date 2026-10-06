@@ -4,12 +4,15 @@
 
 package com.mycompany.practica1.psp;
 
+import clase.EjerciciosClase;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +24,7 @@ public class Practica1Psp {
     final static boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
 
     public static void main(String[] args) {
+       EjerciciosClase.main();
        //ejercicioPadreHijo();
        //ejercicio1();
        //ejercicio2();
@@ -32,7 +36,10 @@ public class Practica1Psp {
        //ejercicio8();
        //ejercicio9();
        //ejercicio10();
-       ejercicio11();
+       //ejercicio11();
+       //ejercicio12();
+       //ejercicio13();
+       //ejercicio14();
        
     }
     
@@ -270,6 +277,69 @@ public class Practica1Psp {
     }
     
     public static void ejercicio13(){
+        ProcessBuilder pb1, pb2;
+        if (isWindows) {
+            //el primer proceso tira el listado de procesos
+            pb1 = new ProcessBuilder("tasklist");
+            //este proceso filtra las lineas que tienen la palabra java
+            pb2 = new ProcessBuilder("findstr", "java");
+        } else {
+            pb1 = new ProcessBuilder("ps", "aux");
+            pb2 = new ProcessBuilder("grep", "java");
+        }
+        //listado de procesos que lanzaremos a la vez
+        //la salida del primer proceo sera la entrada del segundo
+        List<ProcessBuilder> builders = Arrays.asList(pb1, pb2);
+
+        try {
+            List<Process> pipeline = ProcessBuilder.startPipeline(builders);
+
+            //Obtengo el ultimo proceso, de ahi el size-1
+            Process ultimoProceso = pipeline.get(pipeline.size() - 1);
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(ultimoProceso.getInputStream()))) {
+                String linea;
+                //imprimira todos los procesos de que sean de java.
+                while ((linea = br.readLine()) != null) {
+                    System.out.println(linea);
+                }
+            }
+
+            for (Process p : pipeline) {
+                p.waitFor();
+            }
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+    
+    public static void ejercicio14(){
+        ProcessBuilder pb1, pb2, pb3;
+        if (isWindows) {
+            pb1 = new ProcessBuilder("cmd.exe", "/c", "dir", "/b");
+            pb2 = new ProcessBuilder("findstr", ".java");
+            pb3 = new ProcessBuilder("sort");
+        } else {
+            pb1 = new ProcessBuilder("ls", "-1");
+            pb2 = new ProcessBuilder("grep", ".java");
+            pb3 = new ProcessBuilder("sort");
+        }
         
+        File archivoSalida = new File("resultado_ordenado.txt");
+        pb3.redirectOutput(ProcessBuilder.Redirect.to(archivoSalida));
+        
+        List<ProcessBuilder> builders = Arrays.asList(pb1, pb2, pb3);
+        
+        try{
+            List<Process> pipeline = ProcessBuilder.startPipeline(builders);
+            
+            for (Process p : pipeline) {
+                p.waitFor();
+            }
+            
+        } catch(IOException | InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }
